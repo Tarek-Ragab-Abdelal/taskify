@@ -1,8 +1,10 @@
-Task Manager
+## Task Manager
 
 A small React Native task manager built with Expo and TypeScript. The app focuses on simple, smooth task management: add and edit tasks, set due dates and tags, filter by tag or status, and switch between light and dark themes with adjustable font sizes.
 
-Technologies
+![Mock Image](./Canva-Mock.png "Mock")
+
+### Technologies
 
 - Expo
 - React Native
@@ -11,7 +13,7 @@ Technologies
 - react-native-gesture-handler
 - react-native-reanimated
 
-Key features
+### Key features
 
 - Add new task
 - Select due dates for tasks
@@ -25,35 +27,35 @@ Key features
 - Dark theme support
 - Three font size options
 
-Quick start
+### Quick start
 
-1. Clone the repository:
+1. **Clone the repository:**
 
 ```powershell
 git clone https://github.com/Tarek-Ragab-Abdelal/taskify
 cd "task-manager"
 ```
 
-2. Install dependencies:
+2. **Install dependencies:**
 
 ```powershell
 npm install
 ```
 
-3. Start the development server (Expo):
+3. **Start the development server (Expo):**
 
 ```powershell
 npm start
 ```
 
-4. Test on a device with Expo Go
+4. **Test on a device with Expo Go**
 
 - Install Expo Go on your device:
   - Android: https://play.google.com/store/apps/details?id=host.exp.exponent
   - iOS: https://apps.apple.com/app/expo-go/id982107779
 - Open Expo Go and scan the QR code from the Metro/Expo DevTools, or use the emulator options shown by `npm start` (press `a` for Android or `i` for iOS when available).
 
-Project structure
+### Project structure
 
 Top-level
 
@@ -72,6 +74,6 @@ Source (`src/`)
 - `theme/` — colors, typography, theme context and helpers
 - `utils/` — utility functions
 
-Notes
+### Notes
 
 - This project uses Expo for development and testing. Use the Expo Go app to quickly test on physical devices.

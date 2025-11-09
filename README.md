@@ -83,7 +83,7 @@ src/
 
    ```bash
    git clone <repository-url>
-   cd task-manager
+   cd taskify-chapter1
    ```
 
 2. **Install dependencies**

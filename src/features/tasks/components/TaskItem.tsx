@@ -7,7 +7,6 @@ import {
   Alert,
   Animated,
   PanResponder,
-  Dimensions,
   Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -50,7 +49,6 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 
   const [isOpen, setIsOpen] = useState(false);
 
-  const screenWidth = Dimensions.get('window').width;
   const actionWidth = 84; // width of each action area
 
   // Interpolations for the left (delete) action
@@ -80,24 +78,82 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   // PanResponder to capture horizontal swipes only
   const panResponder = useRef(
     PanResponder.create({
+      // We use a simple gesture lock so the first clear direction (horizontal or
+      // vertical) decides who handles the gesture. This avoids fighting the
+      // FlatList/ScrollView vertical scroll during slight diagonal moves.
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        // horizontal swipe threshold & minimal vertical movement
-        return Math.abs(gestureState.dx) > 6 && Math.abs(gestureState.dy) < 12;
+        // Do not decide here; use capture version which runs earlier
+        return false;
       },
+      onMoveShouldSetPanResponderCapture: (_, gestureState) => {
+        // Sensitivity thresholds
+        const absDx = Math.abs(gestureState.dx);
+        const absDy = Math.abs(gestureState.dy);
+
+        // If horizontal movement is clearly dominant, capture and handle it
+        if (absDx > 8 && absDx > absDy * 1.3) {
+          return true;
+        }
+
+        // If vertical movement is dominant, don't capture so parent can scroll
+        if (absDy > 8 && absDy > absDx * 1.3) {
+          return false;
+        }
+
+        return false;
+      },
+      onStartShouldSetPanResponder: () => false,
       onPanResponderGrant: () => {
         // stop any running animations
         swipeAnim.stopAnimation();
       },
       onPanResponderMove: (_, gestureState) => {
-        // clamp the value to actionWidth bounds
+        // Only respond to horizontal-dominant moves — clamp to actionWidth bounds
+        const absDx = Math.abs(gestureState.dx);
+        const absDy = Math.abs(gestureState.dy);
+
+        if (!(absDx > 6 && absDx > absDy)) {
+          // ignore small / vertical drags
+          return;
+        }
+
         let newValue = gestureState.dx;
         if (newValue > actionWidth) newValue = actionWidth;
         if (newValue < -actionWidth) newValue = -actionWidth;
         swipeAnim.setValue(newValue);
       },
       onPanResponderRelease: (_, gestureState) => {
-        // Decide where to snap: left open (edit) / right open (delete) / closed
-        if (gestureState.dx <= -actionWidth / 2) {
+        // Use a velocity-aware snap: fast fling should open/close based on vx
+        const vx = gestureState.vx || 0;
+        const dx = gestureState.dx || 0;
+
+        const flingThreshold = 0.45; // velocity threshold for fling
+        const closeThreshold = actionWidth / 2;
+
+        // Fast fling to the left (negative vx) -> open left (edit)
+        if (vx <= -flingThreshold) {
+          Animated.timing(swipeAnim, {
+            toValue: -actionWidth,
+            duration: 160,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }).start(() => setIsOpen(true));
+          return;
+        }
+
+        // Fast fling to the right (positive vx) -> open right (delete)
+        if (vx >= flingThreshold) {
+          Animated.timing(swipeAnim, {
+            toValue: actionWidth,
+            duration: 160,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }).start(() => setIsOpen(true));
+          return;
+        }
+
+        // Otherwise decide based on dx distance
+        if (dx <= -closeThreshold) {
           // snap left (show edit)
           Animated.timing(swipeAnim, {
             toValue: -actionWidth,
@@ -105,7 +161,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             easing: Easing.out(Easing.quad),
             useNativeDriver: true,
           }).start(() => setIsOpen(true));
-        } else if (gestureState.dx >= actionWidth / 2) {
+        } else if (dx >= closeThreshold) {
           // snap right (show delete)
           Animated.timing(swipeAnim, {
             toValue: actionWidth,
@@ -152,19 +208,17 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     onToggle(task.id);
   };
 
-  const closeActions = (animate = true) => {
-    if (animate) {
-      Animated.timing(swipeAnim, {
-        toValue: 0,
-        duration: 160,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }).start(() => setIsOpen(false));
-    } else {
-      swipeAnim.setValue(0);
-      setIsOpen(false);
-    }
+  // Close with animation
+  const closeActions = () => {
+    Animated.timing(swipeAnim, {
+      toValue: 0,
+      duration: 160,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start(() => setIsOpen(false));
   };
+
+  // (If an immediate close is ever needed, we can add a dedicated helper.)
 
   const handleDelete = () => {
     closeActions();
@@ -180,7 +234,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 
   const handleEdit = () => {
     closeActions();
-    onEdit && onEdit(task);
+    onEdit?.(task);
   };
 
   // When user taps the main content: if actions are open, close them; otherwise do nothing (or could toggle complete)
@@ -275,6 +329,8 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 { color: task.completed ? colors.textMuted : colors.text },
                 task.completed && styles.titleCompleted,
               ]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
             >
               {task.title}
             </Text>
@@ -345,6 +401,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     marginBottom: 4,
+    flexShrink: 1,
   },
   titleCompleted: {
     textDecorationLine: 'line-through',

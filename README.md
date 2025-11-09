@@ -75,6 +75,3 @@ Source (`src/`)
 Notes
 
 - This project uses Expo for development and testing. Use the Expo Go app to quickly test on physical devices.
-- For production builds or native modules, follow Expo documentation for building standalone apps.
-
-If you'd like, I can also add a short CONTRIBUTING or TESTS section next.
